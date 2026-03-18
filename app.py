@@ -15,7 +15,7 @@ st.title("🚗 AutoIQ")
 st.subheader("Your AI Car Manual Assistant")
 
 def get_existing_manuals():
-    client = chromadb.PersistentClient(path="./chroma_db")
+    client = chromadb.Client()
     collections = client.list_collections()
     return [col.name for col in collections]
 
