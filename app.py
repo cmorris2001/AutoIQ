@@ -1,27 +1,28 @@
 import streamlit as st
 import os
+import tempfile
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from dotenv import load_dotenv
-import chromadb
 
-load_dotenv()
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(page_title="AutoIQ", page_icon="🚗")
 st.title("🚗 AutoIQ")
 st.subheader("Your AI Car Manual Assistant")
 
+
 def get_existing_manuals():
-    client = chromadb.Client()
-    collections = client.list_collections()
-    return [col.name for col in collections]
+    if "vectorstores" not in st.session_state:
+        return []
+    return list(st.session_state.vectorstores.keys())
+
 
 def collection_exists(collection_name):
-    existing = get_existing_manuals()
-    return collection_name in existing
+    return collection_name in get_existing_manuals()
+
 
 def ingest_manual(pdf_path, collection_name):
     from langchain_community.document_loaders import PyPDFLoader
@@ -38,21 +39,22 @@ def ingest_manual(pdf_path, collection_name):
         chunks = splitter.split_documents(documents)
 
         embeddings = OpenAIEmbeddings()
-        Chroma.from_documents(
+
+        if "vectorstores" not in st.session_state:
+            st.session_state.vectorstores = {}
+
+        st.session_state.vectorstores[collection_name] = Chroma.from_documents(
             documents=chunks,
             embedding=embeddings,
-            persist_directory="chroma_db",
             collection_name=collection_name
         )
+
     st.success(f"✅ {collection_name} indexed and ready!")
+
 
 def load_chain(collection_name):
     embeddings = OpenAIEmbeddings()
-    vectorstore = Chroma(
-        persist_directory="./chroma_db",
-        embedding_function=embeddings,
-        collection_name=collection_name
-    )
+    vectorstore = st.session_state.vectorstores[collection_name]
     retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
@@ -70,6 +72,7 @@ def load_chain(collection_name):
         | StrOutputParser()
     )
     return chain
+
 
 # --- Sidebar ---
 with st.sidebar:
@@ -110,11 +113,12 @@ with st.sidebar:
             uploaded_file = st.file_uploader("Upload PDF manual", type="pdf")
             if uploaded_file:
                 if st.button("Add to AutoIQ"):
-                    temp_path = f"data/{collection_name}.pdf"
-                    with open(temp_path, "wb") as f:
-                        f.write(uploaded_file.read())
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                        tmp.write(uploaded_file.read())
+                        temp_path = tmp.name
                     ingest_manual(temp_path, collection_name)
                     st.rerun()
+
 
 # --- Main Chat ---
 if selected_manual:
@@ -142,4 +146,3 @@ if selected_manual:
         st.session_state.messages.append({"role": "assistant", "content": answer})
 else:
     st.info("👈 Add a manual in the sidebar to get started!")
-    
