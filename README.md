@@ -1,19 +1,23 @@
-AutoIQ — Car Manual Q&A App
+## AutoIQ — AI Car Manual Assistant
 
-AutoIQ lets you chat with your car manual. Upload a PDF and ask questions in plain English — it finds the right section and answers instantly.
+AutoIQ is a RAG (Retrieval Augmented Generation) application that lets you chat with any car manual. 
+Upload a PDF, ask questions in plain English, and get accurate answers pulled directly from the manual.
 
-## What it does
-- Reads a car manual PDF and chunks it into searchable sections
-- Converts chunks into vector embeddings and stores them in ChromaDB
-- Uses GPT-3.5 to answer questions based only on the manual content
-- Presents everything in a clean Streamlit chat interface
+##  Features
+- **Multi-manual library** — upload multiple manuals and switch between them
+- **Duplicate detection** — checks ChromaDB before ingesting, never stores the same manual twice
+- **Accurate answers** — GPT-3.5 answers only from manual content, no hallucination
+- **Clean chat UI** — Streamlit chat interface with conversation history per manual
+- **Persistent storage** — manuals survive between sessions, ingest once and reuse forever
 
 ## How it works
-1. The PDF is split into 1000 character chunks with a 200 character overlap so context isn't lost between sections
-2. Each chunk is converted to a vector embedding using OpenAI
-3. When you ask a question, the 6 most relevant chunks are retrieved from ChromaDB
-4. Those chunks are sent to GPT-3.5 along with your question
-5. GPT answers based only on the manual — no hallucination
+1. User enters car make, model and year
+2. App checks ChromaDB — if already indexed, loads instantly with no re-ingestion
+3. If new, user uploads the PDF which is split into 1000 character chunks with 200 character overlap
+4. Each chunk is converted to a vector embedding via OpenAI and stored in ChromaDB
+5. When a question is asked, the 6 most semantically relevant chunks are retrieved
+6. Those chunks are passed to GPT-3.5 as context along with the question
+7. GPT answers based only on the retrieved content
 
 ## How to run it
 
@@ -24,21 +28,25 @@ git clone https://github.com/cmorris2001/AutoIQ.git
 pip install -r requirements.txt
 
 ### 3. Add your OpenAI API key
-Create a .env file and add:
+Create a .env file:
 OPENAI_API_KEY=your_key_here
 
-### 4. Add your PDF
-Drop your car manual PDF into the data/ folder and name it manual.pdf
-
-### 5. Ingest the document
-python ingest.py
-
-### 6. Run the app
+### 4. Run the app
 streamlit run app.py
 
+### 5. Add your first manual
+Enter the make, model and year in the sidebar, upload the PDF and start chatting.
+
 ## Known limitations
-- Some maintenance intervals are spread across multiple sections and may not always be retrieved accurately
+- Some maintenance intervals span multiple sections and may not always be retrieved in a single query
 - Only works with text-based PDFs, not scanned images
+- Manual switcher requires page refresh to take effect
+
+## Future improvements
+- Delete manual from library
+- Support scanned PDFs via OCR
+- Re-ranking retriever for improved accuracy on complex queries
+- Deploy to cloud so anyone can use it without a local setup
 
 ## Built with
 - LangChain
@@ -48,8 +56,8 @@ streamlit run app.py
 - PyPDF
 ```
 
-Then run:
+Then push it:
 ```
 git add .
-git commit -m "Add README"
+git commit -m "Update README with multi-manual features"
 git push
