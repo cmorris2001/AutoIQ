@@ -54,10 +54,4 @@ Enter the make, model and year in the sidebar, upload the PDF and start chatting
 - OpenAI GPT-3.5
 - Streamlit
 - PyPDF
-```
 
-Then push it:
-```
-git add .
-git commit -m "Update README with multi-manual features"
-git push
